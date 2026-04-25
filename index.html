@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casa do Lanche</title>
+
+<style>
+body{
+  font-family: Arial;
+  background:#f2f2f2;
+  margin:0;
+}
+
+.container{
+  max-width:400px;
+  margin:auto;
+  padding:15px;
+}
+
+.hidden{display:none;}
+.logo{width:50px;border-radius:10px;}
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:white;
+  padding:10px;
+  border-radius:15px;
+}
+
+.user-info{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.btn-sair{
+  width:auto;
+  padding:6px 12px;
+  font-size:12px;
+  background:#ff4d4d;
+}
+
+.status-box{
+  display:flex;
+  gap:5px;
+  margin:10px 0;
+}
+
+.status{
+  flex:1;
+  padding:8px;
+  border-radius:8px;
+  color:white;
+  font-size:11px;
+  text-align:center;
+}
+
+.ativo{background:#4CAF50;}
+.consumo{background:#f39c12;}
+.dia{background:#3498db;}
+
+.card{
+  background:white;
+  border-radius:15px;
+  padding:10px;
+  margin-bottom:10px;
+}
+
+.tabs{
+  display:flex;
+  gap:5px;
+  margin:10px 0;
+}
+
+.tab{
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#ddd;
+  font-weight:bold;
+}
+
+.tab.active{
+  background:#ff9800;
+  color:white;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  background:#ff9800;
+  color:white;
+  font-weight:bold;
+  margin-top:5px;
+}
+
+.btn-finalizar{background:#2ecc71;}
+
+.pagamento{
+  display:flex;
+  gap:10px;
+}
+
+.opcao{
+  flex:1;
+  padding:10px;
+  text-align:center;
+  border-radius:10px;
+  background:#eee;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.opcao.active{
+  background:#ff9800;
+  color:white;
+}
+
+input, select{
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+.erro{color:red;font-size:12px;}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="telaInicial">
+<img src="assets/logo.png" class="logo">
+<h2>Casa do Lanche</h2>
+<button onclick="abrirCadastro()">Cadastrar</button>
+<button onclick="abrirLogin()">Login</button>
+</div>
+
+<div id="telaLogin" class="hidden">
+
+  <h2>Logue-se no Portal Casa do Lanche!</h2>
+  <p>Olá, meu cliente favorito!</p>
+
+  <input id="loginUsuario" placeholder="Login">
+  <input id="senhaUsuario" type="password" placeholder="Senha">
+
+  <button onclick="window.logar()">Entrar</button>
+
+  <p onclick="window.abrirReset()" 
+     style="text-align:center; margin-top:10px; cursor:pointer;">
+     Redefinir Senha
+  </p>
+
+  <p id="erroLogin" class="erro"></p>
+
+</div>
+
+
+<!-- 🔐 RESET SENHA -->
+<div id="telaReset" class="hidden">
+
+  <h2>Redefinir Senha</h2>
+
+  <input id="loginReset" placeholder="Digite seu login">
+
+  <div id="areaEmailReset" class="hidden">
+    <input id="novoEmail" placeholder="Digite seu e-mail">
+    <button onclick="window.salvarEmailEEnviar()">Salvar e enviar</button>
+  </div>
+
+  <button onclick="window.redefinirSenha()">Enviar link de redefinição</button>
+
+  <p id="msgReset" style="text-align:center;"></p>
+
+</div>
+
+<!-- ================= CADASTRO NOVO ================= -->
+
+<div id="telaCadastro" class="hidden">
+
+<h2>Cadastro</h2>
+
+<input id="nome" placeholder="Nome">
+<input id="telefone" placeholder="Telefone">
+
+<input id="email" placeholder="E-mail">
+<input id="confirmarEmail" placeholder="Confirmar e-mail">
+
+<br><br>
+
+<b>Tipo</b>
+
+<div style="display:flex; gap:20px; align-items:center; margin-top:5px;">
+  <label style="display:flex; align-items:center; gap:5px;">
+    <input type="radio" name="tipo" value="ATN" onclick="toggleEquipe()">
+    ATN
+  </label>
+
+  <label style="display:flex; align-items:center; gap:5px;">
+    <input type="radio" name="tipo" value="EXTERNO" onclick="toggleEquipe()">
+    EXTERNO
+  </label>
+</div>
+
+<div id="areaATN" class="hidden" style="margin-top:10px;">
+  <div style="display:flex; gap:10px;">
+    <input id="equipe" placeholder="Equipe">
+    <input id="andar" placeholder="Andar">
+  </div>
+</div>
+
+<br>
+
+<h3>Definir Acessos</h3>
+
+<button id="gerarLoginBtn">🔄 GERAR LOGIN PARA MIM</button>
+
+<input id="login" placeholder="Definir login">
+
+<input id="senha" type="password" placeholder="Definir senha">
+<input id="confirmarSenha" type="password" placeholder="Confirmar senha">
+
+<p id="erroCadastro" class="erro"></p>
+
+<button onclick="cadastrar()">Finalizar cadastro</button>
+
+</div>
+
+<!-- ================= SCRIPT ================= -->
+
+<script type="module">
+
+// 🔁 ATN CORRIGIDO
+window.toggleEquipe = () => {
+  const tipo = document.querySelector('input[name="tipo"]:checked')?.value;
+  document.getElementById("areaATN").classList.toggle("hidden", tipo !== "ATN");
+};
+
+// 🔄 GERAR LOGIN
+const btnGerar = document.getElementById("gerarLoginBtn");
+
+if (btnGerar) {
+  btnGerar.addEventListener("click", () => {
+
+    const nome = document.getElementById("nome").value.trim().toLowerCase();
+
+    if (!nome) {
+      alert("Digite o nome primeiro");
+      return;
+    }
+
+    const partes = nome.split(" ");
+
+    if (partes.length < 2) {
+      alert("Digite nome e sobrenome");
+      return;
+    }
+
+    const login = `${partes[0]}.${partes[partes.length - 1]}`;
+    document.getElementById("login").value = login;
+
+  });
+}
+
+
+// 🚀 CADASTRO
+
+ () => {
+
+  const nome = document.getElementById("nome").value.trim();
+  const telefone = document.getElementById("telefone").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const confirmarEmail = document.getElementById("confirmarEmail").value.trim();
+
+  const tipo = document.querySelector('input[name="tipo"]:checked')?.value || "";
+  const equipe = document.getElementById("equipe").value.trim();
+  const andar = document.getElementById("andar").value.trim();
+
+  const login = document.getElementById("login").value.trim().toLowerCase();
+  const senha = document.getElementById("senha").value;
+  const confirmarSenha = document.getElementById("confirmarSenha").value;
+
+  const erro = document.getElementById("erroCadastro");
+  erro.innerText = "";
+
+  if (!nome) return erro.innerText = "Informe o nome";
+  if (!telefone) return erro.innerText = "Informe o telefone";
+
+  if (!email) return erro.innerText = "Informe o e-mail";
+  if (email !== confirmarEmail) return erro.innerText = "E-mails não coincidem";
+
+  if (!tipo) return erro.innerText = "Selecione ATN ou EXTERNO";
+
+  if (tipo === "ATN") {
+    if (!equipe) return erro.innerText = "Informe a equipe";
+    if (!andar) return erro.innerText = "Informe o andar";
+  }
+
+  if (!login) return erro.innerText = "Defina um login";
+  if (login.includes(" ")) return erro.innerText = "Login não pode ter espaço";
+
+  if (!senha) return erro.innerText = "Defina uma senha";
+  if (senha.length < 4) return erro.innerText = "Senha muito fraca";
+
+  if (senha !== confirmarSenha) return erro.innerText = "Senhas não coincidem";
+
+  try {
+
+    const usuariosRef = collection(db, "usuarios_v2");
+
+    const qEmail = query(usuariosRef, where("email", "==", email));
+    const emailSnap = await getDocs(qEmail);
+
+    if (!emailSnap.empty) return erro.innerText = "E-mail já cadastrado";
+
+    const qTel = query(usuariosRef, where("telefone", "==", telefone));
+    const telSnap = await getDocs(qTel);
+
+    if (!telSnap.empty) return erro.innerText = "Telefone já cadastrado";
+
+    const emailAuth = login + "@interno.com";
+
+    await createUserWithEmailAndPassword(auth, emailAuth, senha);
+
+    await setDoc(doc(db, "usuarios_v2", login), {
+      nome,
+      telefone,
+      email,
+      tipo,
+      equipe: tipo === "ATN" ? equipe : "",
+      andar: tipo === "ATN" ? andar : "",
+      login,
+      status: "ativo",
+      criadoEm: new Date()
+    });
+
+    alert("Cadastro realizado com sucesso!");
+    abrirLogin();
+
+  } catch (e) {
+
+    if (e.code === "auth/email-already-in-use") {
+      erro.innerText = "Login já cadastrado";
+    } else {
+      erro.innerText = "Erro ao cadastrar";
+    }
+
+  }
+};
+
+</script>
+
+<div id="painel" class="hidden">
+
+<div class="header">
+<div class="user-info">
+<img src="assets/logo.png" class="logo">
+<div>
+<b id="nomeUser"></b><br>
+<span id="limite"></span><br>
+<span id="equipeUser"></span>
+</div>
+</div>
+<button class="btn-sair" onclick="logout()">Sair</button>
+</div>
+
+<div class="status-box">
+<div class="status ativo">Ativo</div>
+<div class="status consumo" id="totalConsumo">R$ 0,00</div>
+<div class="status dia">Em dia</div>
+</div>
+
+<div class="tabs">
+  <button id="tabPedidos" class="tab active" onclick="mostrarAba('pedidos')">Pedidos</button>
+  <button id="tabHistorico" class="tab" onclick="mostrarAba('historico')">Histórico</button>
+  <button id="tabPagamentos" class="tab" onclick="mostrarAba('pagamentos')">Pagamentos</button>
+</div>
+
+<div id="abaPedidos">
+
+<div class="card">
+<h3>Carrinho</h3>
+<div id="carrinho"></div>
+<p id="total"></p>
+<button class="btn-finalizar" onclick="window.finalizarPedidoSeguro()">Finalizar Pedido</button>
+</div>
+
+<div class="card">
+<h3>Cardápio</h3>
+<div id="listaProdutos"></div>
+</div>
+
+<div class="card">
+<h3>Forma de Pagamento</h3>
+<div class="pagamento">
+<div class="opcao" id="pix" onclick="selecionarPagamento('PIX')">PIX</div>
+<div class="opcao" id="dia05" onclick="selecionarPagamento('05')">Dia 05</div>
+<div class="opcao" id="dia20" onclick="selecionarPagamento('20')">Dia 20</div>
+</div>
+</div>
+
+</div>
+
+<div id="abaHistorico" class="hidden">
+<div class="card">
+<h3>Histórico</h3>
+
+<input type="date" id="dataInicio">
+<input type="date" id="dataFim">
+
+<button onclick="gerarHistorico()">Gerar</button> <button onclick="exportarPDF()">Exportar PDF</button>
+
+<div id="resultadoHistorico"></div>
+</div>
+</div>
+
+<!-- NOVA ABA PAGAMENTOS -->
+<div id="abaPagamentos" class="hidden">
+
+  <div class="card">
+    <h3>Pagamentos</h3>
+
+    <p>Consumo total em aberto: <span id="totalAberto">R$ 0,00</span></p>
+    <p>Consumo do ciclo atual: <span id="totalCiclo">R$ 0,00</span></p>
+    <p>Status: <span id="statusPagamento">-</span></p>
+
+    <button onclick="abrirPagamento()">Realizar pagamento</button>
+  </div>
+
+</div>
+
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getFirestore, doc, getDoc, collection, query, where, onSnapshot, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD9zo7X-ll4B1ZMB1VSVVlF6NUxPHBlGWk",
+  authDomain: "casa-do-lanche-2012.firebaseapp.com",
+  projectId: "casa-do-lanche-2012",
+  storageBucket: "casa-do-lanche-2012.firebasestorage.app",
+  messagingSenderId: "982776669029",
+  appId: "1:982776669029:web:c16f1422ab44e9febd378c"
+};
+
+window.abrirReset = () => {
+
+  document.getElementById("telaLogin").classList.add("hidden");
+  document.getElementById("telaReset").classList.remove("hidden");
+
+};
+
+window.abrirLogin = () => {
+
+  document.getElementById("telaReset").classList.add("hidden");
+  document.getElementById("telaLogin").classList.remove("hidden");
+
+};
+
+window.pixCopiado = false;
+
+// 🔥 NOVO CHECKOUT INFINITEPAY
+window.gerarCheckout = async (total) => {
+
+  const response = await fetch("http://localhost:3000/criar-checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      total
+    })
+  });
+
+  const data = await response.json();
+
+  if(data.url){
+    window.location.href = data.url;
+  } else {
+    alert("Erro ao gerar pagamento");
+  }
+};
+
+window.abrirModalPix = function(total){
+  document.getElementById("modalPix").style.display="flex";
+
+  document.getElementById("tituloPix").innerText = "Pagamento via PIX";
+
+  document.getElementById("valorPix").innerText =
+    `Realize seu pagamento no valor de R$ ${total}`;
+
+  document.getElementById("statusPix").innerText = "";
+  document.getElementById("areaPix").style.display = "block";
+
+  window.pixCopiado = false;
+
+  // ⏱ fallback (1min30)
+  setTimeout(()=>{
+    if(!window.pixCopiado) finalizarPix();
+  },90000);
+};
+
+window.copiarPix = function(){
+  const chave = document.getElementById("chavePix").innerText;
+
+  navigator.clipboard.writeText(chave);
+
+  document.getElementById("statusPix").innerText = "Copiado com sucesso ✔";
+
+  window.pixCopiado = true;
+
+  // ⏱ após copiar → 45s
+  setTimeout(()=>{
+    finalizarPix();
+  },45000);
+};
+
+function finalizarPix(){
+
+  // 🔥 muda layout
+  document.getElementById("tituloPix").innerText =
+    "Pagamento recebido com sucesso!";
+
+  document.getElementById("valorPix").innerText = "";
+
+  document.getElementById("areaPix").style.display = "none";
+
+  // ✅ selo piscando
+  const status = document.getElementById("statusPix");
+
+  let visivel = true;
+
+  setInterval(()=>{
+    status.innerHTML = visivel
+      ? "✔"
+      : "";
+
+    status.style.color = "#2ecc71";
+    status.style.fontSize = "28px";
+
+    visivel = !visivel;
+  },500);
+
+  // 🔥 limpa carrinho
+  window.limparCarrinho();
+}
+
+// ❌ fechar manual
+window.fecharPix = function(){
+  document.getElementById("modalPix").style.display="none";
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// 🔐 RESET SENHA COMPLETO
+
+import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+
+window.redefinirSenha = async () => {
+
+  const login = document.getElementById("loginReset").value;
+  const msg = document.getElementById("msgReset");
+
+  msg.innerText = "";
+
+  if (!login) {
+    msg.innerText = "Informe o login";
+    return;
+  }
+
+  const snap = await getDoc(doc(db, "usuarios_v2", login));
+
+  if (!snap.exists()){
+    msg.innerText = "Usuário não encontrado";
+    return;
+  }
+
+  const dados = snap.data();
+
+// (continua seu código normal)
+nomeUser.innerText = "Olá, "+dados.nome;
+
+  // 🔥 SEM EMAIL
+  if (!dados.email || dados.email.includes("@interno.com")) {
+    document.getElementById("areaEmailReset").classList.remove("hidden");
+    msg.innerText = "Informe seu e-mail para continuar";
+    return;
+  }
+
+  enviarReset(login + "@interno.com");
+};
+
+
+window.salvarEmailEEnviar = async () => {
+
+  const email = document.getElementById("novoEmail").value;
+  const login = document.getElementById("loginReset").value;
+  const msg = document.getElementById("msgReset");
+
+  if (!email) {
+    msg.innerText = "Informe o e-mail";
+    return;
+  }
+
+  await setDoc(doc(db, "usuarios_v2", login), {
+    email
+  }, { merge: true });
+
+  enviarReset(email);
+};
+
+
+function enviarReset(email){
+
+  sendPasswordResetEmail(auth, email)
+    .then(()=>{
+      document.getElementById("msgReset").innerText =
+        "E-mail de redefinição enviado com sucesso!";
+    })
+    .catch(()=>{
+      document.getElementById("msgReset").innerText =
+        "Erro ao enviar e-mail";
+    });
+
+}
+
+// 🔹 DECLARAÇÃO DAS ABAS E TABS
+const abaPedidos = document.getElementById("abaPedidos");
+const abaHistorico = document.getElementById("abaHistorico");
+const abaPagamentos = document.getElementById("abaPagamentos");
+
+const tabPedidos = document.getElementById("tabPedidos");
+const tabHistorico = document.getElementById("tabHistorico");
+const tabPagamentos = document.getElementById("tabPagamentos");
+
+window.db = db;
+window.auth = auth;
+
+function esconderTudo(){
+["telaInicial","telaLogin","telaCadastro","painel"]
+.forEach(id=>document.getElementById(id).classList.add("hidden"));
+}
+
+window.abrirLogin = ()=>{esconderTudo();telaLogin.classList.remove("hidden");};
+window.abrirCadastro = ()=>{esconderTudo();telaCadastro.classList.remove("hidden");};
+
+window.toggleEquipe = () => {
+  const tipo = document.querySelector('input[name="tipo"]:checked')?.value;
+  document.getElementById("areaATN").classList.toggle("hidden", tipo !== "ATN");
+};
+
+window.logar = async()=>{
+try{
+await signInWithEmailAndPassword(auth,loginUsuario.value.toLowerCase()+"@interno.com",senhaUsuario.value);
+}catch(e){
+erroLogin.innerText="Usuário ou senha incorretos";
+}
+};
+
+window.cadastrar = async () => {
+  const nome = document.getElementById("nome").value;
+  const login = document.getElementById("login").value.toLowerCase();
+  const telefone = document.getElementById("telefone").value;
+  const tipo = document.getElementById("tipo").value;
+  const equipe = document.getElementById("equipe").value;
+  const senha = document.getElementById("senha").value;
+  const confirmarSenha = document.getElementById("confirmarSenha").value;
+  const erro = document.getElementById("erroCadastro");
+
+  erro.innerText = "";
+
+  if (!nome || !login || !telefone || !tipo || !senha || !confirmarSenha) {
+    erro.innerText = "Preencha todos os campos";
+    return;
+  }
+
+  if (senha !== confirmarSenha) {
+    erro.innerText = "As senhas não coincidem";
+    return;
+  }
+
+  try {
+    const emailFake = login + "@interno.com";
+
+    await createUserWithEmailAndPassword(auth, emailFake, senha);
+
+    await setDoc(doc(db, "usuarios_v2", login), {
+      nome,
+      login,
+      telefone,
+      tipo,
+      equipe: tipo === "ATN" ? equipe : "",
+      criadoEm: new Date()
+    });
+
+    alert("Cadastro realizado com sucesso!");
+    abrirLogin();
+
+  } catch (e) {
+    console.error(e);
+
+    if (e.code === "auth/email-already-in-use") {
+      erro.innerText = "Login já cadastrado";
+    } else {
+      erro.innerText = "Erro ao cadastrar";
+    }
+  }
+};
+
+onAuthStateChanged(auth, async(user)=>{
+esconderTudo();
+
+if(user){
+const usuario = user.email.split("@")[0];
+const snap = await getDoc(doc(db,"usuarios_v2",usuario));
+const dados = snap.data();
+
+// 🔥 SALVA LIMITE GLOBAL
+window.limiteUsuario = dados.limite || 200;
+
+
+// 🔥 STATUS DA CONTA
+const statusBox = document.querySelector(".status.ativo");
+
+if(dados.statusConta === "inativo"){
+  statusBox.innerText = "Inativo";
+  statusBox.style.background = "#e74c3c";
+} else {
+  statusBox.innerText = "Ativo";
+}
+
+
+// 🔥 STATUS PAGAMENTO
+const statusPagamento = document.querySelector(".status.dia");
+
+if(dados.pagamento === "atrasado"){
+  statusPagamento.innerText = "Atrasado";
+  statusPagamento.style.background = "#e74c3c";
+} else {
+  statusPagamento.innerText = "Em dia";
+}
+
+nomeUser.innerText = "Olá, "+dados.nome;
+equipeUser.innerText = dados.tipo === "ATN" ? "Equipe: " + dados.equipe : "";
+
+monitorarConsumo(user.uid);
+calcularLimite(user.uid);
+
+painel.classList.remove("hidden");
+
+// 🔥 ALTERAÇÃO AQUI
+const esperarPedidos = setInterval(() => {
+  if (window.iniciarPedidos) {
+    window.iniciarPedidos();
+    clearInterval(esperarPedidos);
+  }
+}, 100);
+
+}else{
+telaInicial.classList.remove("hidden");
+}
+});
+
+function calcularLimite(uid){
+const q = query(collection(db,"pedidos"),
+where("uid","==",uid));
+
+onSnapshot(q,(snapshot)=>{
+let consumo=0;
+
+snapshot.forEach(doc=>{
+const p = doc.data();
+
+if(p.status !== "cancelado" && p.formaPagamento !== "PIX"){
+consumo += p.total || 0;
+}
+});
+
+const limiteBase = window.limiteUsuario || 200;
+const limiteDisponivel = Math.max(0, limiteBase - consumo);
+
+limite.innerText = "Limite disponível: R$ " + limiteDisponivel;
+});
+}
+
+function monitorarConsumo(uid){
+const q = query(collection(db,"pedidos"),
+where("uid","==",uid));
+
+onSnapshot(q,(snapshot)=>{
+let total=0;
+
+snapshot.forEach(doc=>{
+const p = doc.data();
+
+if(p.status !== "cancelado" && p.formaPagamento !== "PIX"){
+total += p.total || 0;
+}
+});
+
+totalConsumo.innerText = "R$ " + total.toFixed(2);
+});
+}
+
+window.mostrarAba = function(aba){
+document.getElementById("abaPedidos").classList.add("hidden");
+document.getElementById("abaHistorico").classList.add("hidden");
+document.getElementById("abaPagamentos").classList.add("hidden");
+
+document.getElementById("tabPedidos").classList.remove("active");
+document.getElementById("tabHistorico").classList.remove("active");
+document.getElementById("tabPagamentos").classList.remove("active");
+
+if (aba === "pedidos") {
+  abaPedidos.classList.remove("hidden");
+  tabPedidos.classList.add("active");
+}
+
+if (aba === "historico") {
+  abaHistorico.classList.remove("hidden");
+  tabHistorico.classList.add("active");
+}
+
+if (aba === "pagamentos") {
+  abaPagamentos.classList.remove("hidden");
+  tabPagamentos.classList.add("active");
+
+  carregarPagamentos(auth.currentUser.uid);
+}
+
+} // 🔥 FECHAMENTO CORRETO
+
+window.formaPagamentoSelecionada = null;
+
+window.selecionarPagamento = function(tipo){
+window.formaPagamentoSelecionada = tipo;
+
+["pix","dia05","dia20"].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.classList.remove("active");
+});
+
+if(tipo === "PIX") document.getElementById("pix").classList.add("active");
+if(tipo === "05") document.getElementById("dia05").classList.add("active");
+if(tipo === "20") document.getElementById("dia20").classList.add("active");
+};
+
+window.logout = ()=>signOut(auth);
+
+window.finalizarPedidoSeguro = async () => {
+
+  const user = auth.currentUser;
+
+  if (!user) {
+    alert("Usuário não autenticado");
+    return;
+  }
+
+  const login = user.email.split("@")[0];
+
+  const snap = await getDoc(doc(db, "usuarios_v2", login));
+  const dados = snap.data();
+
+  // 🚫 BLOQUEIO INATIVO
+  if(dados.statusConta === "inativo"){
+    alert("Sua conta está inativa. Procure o gestor.");
+    return;
+  }
+
+  // ✅ LIBERADO → chama função original
+
+// 🔥 NOVO FLUXO COM CHECKOUT REAL
+const totalTexto = document.getElementById("total").innerText;
+
+const total = Number(
+  totalTexto
+    .replace("Total: R$", "")
+    .replace(",", ".")
+    .trim()
+);
+
+if(!total || total <= 0){
+  alert("Carrinho vazio");
+  return;
+}
+
+await window.gerarCheckout(total);
+};
+
+</script>
+
+<script type="module" src="js/produtos.js"></script>
+<script type="module" src="js/carrinho.js"></script>
+<script type="module" src="js/app.js"></script>
+<script type="module" src="js/pagamentos.js"></script>
+<script type="module" src="js/historico.js"></script> <!-- AQUI -->
+<script type="module" src="js/pedidos.js"></script>
+
+<div id="modalPix" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);justify-content:center;align-items:center;z-index:9999;">
+
+<div style="background:#1e1e1e;padding:20px;border-radius:15px;width:90%;max-width:350px;color:white;position:relative;text-align:center;">
+
+<!-- ❌ FECHAR -->
+<div onclick="fecharPix()" style="position:absolute;top:10px;right:15px;font-size:18px;cursor:pointer;">✖</div>
+
+<h3 id="tituloPix">Pagamento via PIX</h3>
+
+<p id="valorPix" style="margin-bottom:15px;"></p>
+
+<!-- 🔑 CHAVE -->
+<div id="areaPix">
+  <div style="background:#111;padding:12px;border-radius:10px;margin-bottom:10px;font-size:13px;word-break:break-all;">
+    <span id="chavePix">cd5574e2-dec9-4aaf-a545-728fc2eed0cb</span>
+  </div>
+
+  <button onclick="copiarPix()">Copiar</button>
+</div>
+
+<!-- ✅ STATUS -->
+<div id="statusPix" style="margin-top:15px;font-weight:bold;"></div>
+
+</div>
+</div>
+
+<!-- MODAL PAGAMENTO -->
+<div id="modalPagamento" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);justify-content:center;align-items:center;z-index:9999;">
+
+  <div style="background:#1e1e1e;padding:20px;border-radius:15px;width:90%;max-width:350px;color:white;text-align:center;">
+
+    <h3>Realize seu pagamento pelo Pix</h3>
+
+    <p>Total: <span id="modalTotal"></span></p>
+    <p>Desconto aplicado: <span id="modalDesconto"></span></p>
+    <p><strong>Valor final: <span id="modalFinal"></span></strong></p>
+
+    <p>Chave PIX:</p>
+    <input id="pixKey" readonly style="width:100%;padding:10px;margin:10px 0;border-radius:6px;border:none;">
+
+    <button onclick="copiarPix()">Copiar</button>
+    <button onclick="confirmarPagamento()">Marcar como pago</button>
+    <button onclick="fecharModal()">Fechar</button>
+
+  </div>
+
+</div>
+
+</body>
+</html>

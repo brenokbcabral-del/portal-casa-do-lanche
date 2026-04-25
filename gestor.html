@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Painel Gestor</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0b0f1a;
+  color: white;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  background: linear-gradient(180deg, #1b1f36, #0f1222);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 30px;
+  margin-bottom: 25px;
+}
+
+.logo img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+}
+
+.logo span {
+  margin-top: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffa726;
+}
+
+.menu {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.menu button {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  text-align: left;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: #1f2a44;
+}
+
+.menu .ativo {
+  background: #00c896;
+  color: #fff;
+}
+
+.conteudo {
+  flex: 1;
+  padding: 20px;
+}
+
+.topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #1f2a44;
+  padding-bottom: 10px;
+}
+
+.bemvindo {
+  color: #00c896;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.data {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.perfil {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.perfil img {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: 2px solid #00c896;
+}
+
+.perfil-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.sair {
+  margin-top: 4px;
+  background: #ff5252;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: white;
+  cursor: pointer;
+}
+
+.upload {
+  font-size: 14px;
+  cursor: pointer;
+  color: #00c896;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="sidebar">
+    <div class="logo">
+      <img src="assets/logo.png">
+      <span>Casa do Lanche</span>
+    </div>
+
+ <div class="menu">
+  <button class="ativo" onclick="abrirTela(event, 'dashboard')">Painel Gestão</button>
+  <button onclick="abrirTela(event, 'usuarios')">Gerenciar Usuários</button>
+  <button onclick="abrirTela(event, 'relatorio')">Pedidos e Relatório</button>
+  <button onclick="abrirTela(event, 'gastos')">Registrar Custo</button>
+  <button onclick="abrirTela(event, 'pix')">Histórico de PIX</button>
+  <button onclick="abrirTela(event, 'relatorioCobranca')">📊 Extrair Relatório</button>
+</div>
+  </div>
+
+  <div class="conteudo">
+
+    <div class="topo">
+      <div>
+        <div class="bemvindo">Bem-vindo, Gestor!</div>
+        <div class="data" id="dataHora"></div>
+      </div>
+
+      <div class="perfil">
+        <img id="fotoPerfil" src="https://via.placeholder.com/45">
+        <div class="perfil-info">
+          <strong>Breno Cabral</strong>
+          <button class="sair" onclick="logout()">Sair</button>
+        </div>
+
+        <label class="upload">
+          📷
+          <input type="file" hidden onchange="uploadFoto(event)">
+        </label>
+      </div>
+    </div>
+
+    <div id="conteudo-dinamico"></div>
+
+  </div>
+</div>
+
+<script type="module" src="./js/firebase-config.js"></script>
+
+<script type="module">
+
+import { getDocs, collection } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+const db = window.db;
+
+/* DATA */
+function atualizarHora() {
+  const agora = new Date();
+  document.getElementById("dataHora").innerText =
+    agora.toLocaleDateString() + " " + agora.toLocaleTimeString();
+}
+setInterval(atualizarHora, 1000);
+atualizarHora();
+
+/* ============================= */
+/* 🔥 CARREGAMENTO DINÂMICO */
+/* ============================= */
+
+async function carregarTela(nome) {
+  const container = document.getElementById("conteudo-dinamico");
+  container.innerHTML = "<p>Carregando...</p>";
+
+  try {
+
+    let modulo;
+
+    if (nome === "dashboard") {
+      modulo = await import("./gestor.js/dashboard.js?v=" + Date.now());
+    }
+
+    if (nome === "usuarios") {
+      modulo = await import("./gestor.js/usuarios.js?v=" + Date.now());
+    }
+
+    if (nome === "relatorio") {
+      modulo = await import("./gestor.js/relatorio.js?v=" + Date.now());
+    }
+
+    if (nome === "gastos") {
+      modulo = await import("./gestor.js/gastos.js?v=" + Date.now());
+    }
+
+    if (nome === "pix") {
+      modulo = await import("./gestor.js/faturamento.js?v=" + Date.now());
+    }
+     if (nome === "relatorioCobranca") {
+       modulo = await import("./gestor.js/relatorioCobranca.js?v=" + Date.now());
+    }
+
+    if (modulo && modulo.default) {
+      modulo.default(container, db);
+    } else {
+      container.innerHTML = "<h3>Erro ao carregar tela</h3>";
+    }
+
+  } catch (erro) {
+    console.error("Erro ao carregar módulo:", erro);
+    container.innerHTML = "<h3>Erro ao carregar módulo</h3>";
+  }
+}
+
+/* NAVEGAÇÃO */
+window.abrirTela = async (e, tela) => {
+
+  document.querySelectorAll(".menu button")
+    .forEach(btn => btn.classList.remove("ativo"));
+
+  e.target.classList.add("ativo");
+
+  await carregarTela(tela);
+};
+
+/* FOTO */
+window.uploadFoto = (event) => {
+  const file = event.target.files[0];
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    localStorage.setItem("fotoPerfil", e.target.result);
+    document.getElementById("fotoPerfil").src = e.target.result;
+  };
+
+  reader.readAsDataURL(file);
+};
+
+/* INIT */
+window.onload = () => {
+  const foto = localStorage.getItem("fotoPerfil");
+  if (foto) document.getElementById("fotoPerfil").src = foto;
+
+  carregarTela("dashboard");
+};
+
+/* LOGOUT */
+window.logout = () => {
+  window.location.href = "index.html";
+};
+
+</script>
+
+</body>
+</html>

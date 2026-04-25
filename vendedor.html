@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel do Vendedor - Casa do Lanche</title>
+
+<style>
+body{font-family:Arial;background:#0f0f0f;margin:0;color:white;}
+.container{max-width:420px;margin:auto;padding:15px;}
+.logo{width:60px;border-radius:10px;}
+.header{display:flex;align-items:center;justify-content:space-between;}
+.header-left{display:flex;align-items:center;gap:10px;}
+.card{background:#1c1c1c;padding:15px;border-radius:15px;margin-bottom:15px;}
+input,select{width:100%;padding:10px;margin-top:10px;border-radius:8px;border:none;background:#2a2a2a;color:white;}
+button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#ff9800;color:white;font-weight:bold;}
+.btn-sair{background:red;width:auto;padding:5px 10px;}
+.tabs{display:flex;gap:5px;margin-bottom:10px;}
+.tab{flex:1;padding:10px;border:none;border-radius:10px;background:#444;color:white;font-weight:bold;}
+.tab.active{background:#ff9800;}
+.hidden{display:none;}
+.box{background:#2a2a2a;padding:12px;border-radius:12px;text-align:center;}
+.resumo{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pedido{background:#2a2a2a;padding:12px;border-radius:10px;margin-bottom:10px;}
+.acoes{display:flex;gap:5px;margin-top:8px;}
+.btn-ok{background:#2ecc71;}
+.btn-cancelar{background:#e74c3c;}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="login">
+<img src="assets/logo.png" class="logo" style="display:block;margin:20px auto;">
+<h2 style="text-align:center;">Seja bem-vindo, vendedor</h2>
+<input id="loginInput" placeholder="Login">
+<input id="senhaInput" type="password" placeholder="Senha">
+<input id="nomeVendedor" placeholder="Nome">
+<button onclick="entrar()">Entrar</button>
+</div>
+
+<div id="painel" style="display:none;">
+
+<div class="card header">
+<div class="header-left">
+<img src="assets/logo.png" class="logo">
+<div>
+<b id="saudacao"></b><br>
+<small id="ultimoLogin"></small>
+</div>
+</div>
+<button class="btn-sair" onclick="logout()">Sair</button>
+</div>
+
+<div class="card">
+<h3>Resumo do Período</h3>
+
+<div style="display:flex; gap:10px;">
+<input type="date" id="resumoInicio">
+<input type="date" id="resumoFim">
+</div>
+
+<button onclick="renderPedidos()" style="background:#1db9c3;">Filtrar Período</button>
+
+<div class="resumo">
+<div class="box" style="border-left:4px solid #4caf50;"><p>Ciclo Atual</p><b id="valorCicloAtual">R$ 0,00</b></div>
+<div class="box" style="border-left:4px solid #2196f3;"><p>Próximo Ciclo</p><b id="valorProximoCiclo">R$ 0,00</b></div>
+<div class="box" style="border-left:4px solid #ff9800;"><p>Comissão Atual</p><b id="comissaoAtual">R$ 0,00</b></div>
+<div class="box" style="border-left:4px solid #9c27b0;"><p>Comissão Futura</p><b id="comissaoFutura">R$ 0,00</b></div>
+</div>
+
+<div style="display:flex; gap:10px; margin-top:15px;">
+<div style="flex:1;background:#1e3d2b;padding:10px;border-radius:10px;text-align:center;"><small>Entregues</small><b id="qtdEntregues">0</b></div>
+<div style="flex:1;background:#3d1e1e;padding:10px;border-radius:10px;text-align:center;"><small>Cancelados</small><b id="qtdCancelados">0</b></div>
+<div style="flex:1;background:#3d2e1e;padding:10px;border-radius:10px;text-align:center;"><small>Manual</small><b id="qtdManual">0</b></div>
+</div>
+</div>
+
+<div class="card">
+
+<div class="tabs">
+<button class="tab active" onclick="trocarAba('abertos')">Pedidos</button>
+<button class="tab" onclick="trocarAba('historico')">Histórico</button>
+<button class="tab" onclick="trocarAba('preencher')">Preencher</button>
+</div>
+
+<div id="abaAbertos"><div id="listaAbertos"></div></div>
+
+<div id="abaHistorico" class="hidden">
+<div style="display:flex; gap:8px; margin-bottom:10px;">
+<input type="date" id="dataInicio">
+<input type="date" id="dataFim">
+</div>
+
+<div style="display:flex; gap:8px;">
+<button onclick="filtrarHistorico()" style="background:#1db9c3;">Filtrar Período</button>
+<button onclick="exportarExcel()" style="background:#4caf50;">Exportar Excel</button>
+</div>
+
+<div id="listaHistorico"></div>
+</div>
+
+<div id="abaPreencher" class="hidden">
+<select id="clienteExistente">
+<option value="">Selecionar cliente</option>
+</select>
+
+<input id="nomeComprador">
+<input id="equipeComprador">
+<input id="valorCompra" type="number">
+<input id="telefoneComprador">
+
+<!-- 🔥 ADICIONADO -->
+<select id="formaPagamento">
+<option value="">Forma de pagamento</option>
+<option value="pix">PIX</option>
+<option value="05">Dia 05</option>
+<option value="20">Dia 20</option>
+</select>
+
+<button onclick="salvarPedidoManual()">Salvar</button>
+</div>
+
+</div>
+</div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, addDoc, getDocs, updateDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+const app = initializeApp({projectId:"casa-do-lanche-2012"});
+const db = getFirestore(app);
+
+let pedidosCache=[];
+
+window.entrar=()=>{
+if(loginInput.value!=="casa.dolanche"||senhaInput.value!=="2012criacao") return alert("Erro");
+localStorage.setItem("vendedor_nome",nomeVendedor.value);
+localStorage.setItem("ultimo_login",new Date().toLocaleString());
+carregarPainel();
+};
+
+function carregarPainel(){
+login.style.display="none";
+painel.style.display="block";
+saudacao.innerText="Olá, "+localStorage.getItem("vendedor_nome");
+ultimoLogin.innerText="Último login: "+localStorage.getItem("ultimo_login");
+carregarUsuarios();
+escutarPedidos();
+}
+
+async function carregarUsuarios(){
+const snap=await getDocs(collection(db,"usuarios_v2"));
+clienteExistente.innerHTML='<option value="">Selecionar cliente</option>';
+snap.forEach(doc=>{
+const u=doc.data();
+clienteExistente.innerHTML+=`<option value="${doc.id}">${u.nome}</option>`;
+});
+}
+
+// 🔥 AUTOPREENCHIMENTO
+clienteExistente.addEventListener("change", async ()=>{
+const id = clienteExistente.value;
+if(!id) return;
+
+const snap = await getDocs(collection(db,"usuarios_v2"));
+snap.forEach(doc=>{
+if(doc.id === id){
+const u = doc.data();
+nomeComprador.value = u.nome || "";
+equipeComprador.value = u.equipe || "";
+telefoneComprador.value = u.telefone || "";
+}
+});
+});
+
+function escutarPedidos(){
+onSnapshot(collection(db,"pedidos"),snap=>{
+pedidosCache=[];
+snap.forEach(d=>pedidosCache.push({id:d.id,...d.data()}));
+window.renderPedidos();
+});
+}
+
+window.trocarAba=t=>{
+abaAbertos.classList.add("hidden");
+abaHistorico.classList.add("hidden");
+abaPreencher.classList.add("hidden");
+document.querySelectorAll(".tab").forEach(el=>el.classList.remove("active"));
+
+if(t==="abertos"){abaAbertos.classList.remove("hidden");document.querySelectorAll(".tab")[0].classList.add("active");}
+if(t==="historico"){abaHistorico.classList.remove("hidden");document.querySelectorAll(".tab")[1].classList.add("active");}
+if(t==="preencher"){abaPreencher.classList.remove("hidden");document.querySelectorAll(".tab")[2].classList.add("active");}
+};
+
+window.entregar=id=>updateDoc(doc(db,"pedidos",id),{status:"entregue"});
+window.cancelar=id=>updateDoc(doc(db,"pedidos",id),{status:"cancelado"});
+
+// 🔥 FUNÇÃO CORRIGIDA
+window.salvarPedidoManual = async function(){
+try{
+
+const clienteId = clienteExistente.value;
+const nome = nomeComprador.value.trim();
+const equipe = equipeComprador.value.trim();
+const telefone = telefoneComprador.value.trim();
+const valor = parseFloat(valorCompra.value);
+const forma = document.getElementById("formaPagamento").value;
+
+if(!nome || !equipe || !valor || !forma){
+alert("Preencha todos os campos obrigatórios");
+return;
+}
+
+await addDoc(collection(db,"pedidos"),{
+nome,
+equipe,
+telefone: telefone || "",
+total: valor,
+formaPagamento: forma,
+status:"aberto",
+origem:"manual",
+uid: clienteId || null,
+criadoEm: serverTimestamp()
+});
+
+alert("Pedido salvo com sucesso!");
+
+nomeComprador.value="";
+equipeComprador.value="";
+telefoneComprador.value="";
+valorCompra.value="";
+formaPagamento.value="";
+clienteExistente.value="";
+
+renderPedidos();
+
+}catch(e){
+console.error(e);
+alert("Erro ao salvar pedido");
+}
+};
+
+window.renderPedidos = function(){
+listaAbertos.innerHTML="";
+let atual=0,e=0,c=0,m=0;
+
+const inicio = resumoInicio.value ? new Date(resumoInicio.value) : null;
+const fim = resumoFim.value ? new Date(resumoFim.value+"T23:59:59") : null;
+
+pedidosCache.forEach(p=>{
+const data=p.criadoEm?.toDate?.();
+if(!data) return;
+
+const status=p.status||"aberto";
+
+const dentroPeriodo =
+(!inicio || data >= inicio) &&
+(!fim || data <= fim);
+
+if(dentroPeriodo){
+if(status==="cancelado") c++;
+if(p.origem==="manual") m++;
+
+if(status==="entregue"||status==="entregue_pix"){
+e++;
+atual+=p.total||0;
+}
+}
+
+if(status==="aberto"||status==="pago_pix"){
+listaAbertos.innerHTML+=`
+<div class="pedido">
+<b>${data.toLocaleString()} - ${p.nome}</b><br>
+<b>R$ ${p.total}</b><br>
+<div class="acoes">
+<button onclick="entregar('${p.id}')" class="btn-ok">Entregue</button>
+<button onclick="cancelar('${p.id}')" class="btn-cancelar">Cancelar</button>
+</div>
+</div>`;
+}
+});
+
+valorCicloAtual.innerText="R$ "+atual.toFixed(2);
+comissaoAtual.innerText="R$ "+(atual*0.1).toFixed(2);
+
+qtdEntregues.innerText=e;
+qtdCancelados.innerText=c;
+qtdManual.innerText=m;
+};
+
+window.filtrarHistorico = function(){
+listaHistorico.innerHTML="";
+
+const inicio = dataInicio.value ? new Date(dataInicio.value) : null;
+const fim = dataFim.value ? new Date(dataFim.value+"T23:59:59") : null;
+
+pedidosCache.forEach(p=>{
+const data=p.criadoEm?.toDate?.();
+if(!data) return;
+
+const status = p.status || "aberto";
+if(status==="aberto"||status==="pago_pix") return;
+
+if(inicio && data<inicio) return;
+if(fim && data>fim) return;
+
+listaHistorico.innerHTML+=`
+<div class="pedido">
+<b>${data.toLocaleString()} - ${p.nome}</b><br>
+<b>R$ ${p.total}</b><br>
+Status: ${status}
+</div>`;
+});
+};
+
+window.exportarExcel = function(){
+let csv = "Data,Nome,Equipe,Valor,Status\n";
+
+pedidosCache.forEach(p=>{
+const data=p.criadoEm?.toDate?.();
+if(!data) return;
+
+const inicio = dataInicio.value ? new Date(dataInicio.value) : null;
+const fim = dataFim.value ? new Date(dataFim.value+"T23:59:59") : null;
+
+if(inicio && data<inicio) return;
+if(fim && data>fim) return;
+
+const status = p.status || "";
+if(status==="aberto"||status==="pago_pix") return;
+
+csv += `${data.toLocaleString()},${p.nome},${p.equipe||""},${p.total},${status}\n`;
+});
+
+const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+const link = document.createElement("a");
+
+link.href = URL.createObjectURL(blob);
+link.download = "historico.csv";
+link.click();
+};
+
+if(localStorage.getItem("vendedor_nome")) carregarPainel();
+
+</script>
+
+</body>
+</html>
